@@ -1,1 +1,4 @@
-module MonkeyInterpreter2
+module MonkeyInterpreter
+
+go 1.25
+

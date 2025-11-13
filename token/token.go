@@ -1,5 +1,7 @@
 package token
 
+import "fmt"
+
 type TokenType string
 
 const (
@@ -29,10 +31,27 @@ const (
 	LET      = "LET"
 )
 
+var keywords = map[string]TokenType{
+	"fn": FUNCTION,
+	"let": LET,
+}
+
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	return IDENT
+}
+
 type Token struct {
-	Type     TokenType
-	Literal  string
-	File     string
-	Line     int
-	Position int
+	Type         TokenType
+	Literal      string
+	FileName     string
+	LinePosition int
+	Position     int
+	PositionEnd  int//maybe?
+}
+
+func (t Token) String() string {
+	return fmt.Sprintf("%s of type %s at %s:%d:%d", t.Literal, t.Type, t.FileName, t.LinePosition, t.Position)
 }
