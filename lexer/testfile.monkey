@@ -6,3 +6,8 @@ let add = fn(x, y) {
 };
 
 let result = add(five, ten);
+
+let dec = 12.4;
+
+!-/*5;
+5 < 10 > 5;

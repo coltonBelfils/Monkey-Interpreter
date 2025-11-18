@@ -85,9 +85,17 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.cur {
 	case '=':
-		tok = newToken(token.ASSIGN, l.cur, l.fileName, l.line, l.linePosition)
+		if l.next == '=' {
+			tok = newToken(token.EQ, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.ASSIGN, l.cur, l.fileName, l.line, l.linePosition)
+		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.cur, l.fileName, l.line, l.linePosition)
+	case '\\': //This feels a little weird. "\ a" is different from "\a". White space will be discarded at the parsing level so should \a be encoded as a single token?
+		tok = newToken(token.ESCAPE, l.cur, l.fileName, l.line, l.linePosition)
 	case '(':
 		tok = newToken(token.LPAREN, l.cur, l.fileName, l.line, l.linePosition)
 	case ')':
@@ -95,11 +103,89 @@ func (l *Lexer) NextToken() token.Token {
 	case ',':
 		tok = newToken(token.COMMA, l.cur, l.fileName, l.line, l.linePosition)
 	case '+':
-		tok = newToken(token.PLUS, l.cur, l.fileName, l.line, l.linePosition)
+		if l.next == '=' {
+			tok = newToken(token.PLUS_ASSIGN, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else if l.next == '+' {
+			tok = newToken(token.PLUS_PLUS, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.PLUS, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '-':
+		if l.next == '=' {
+			tok = newToken(token.MINUS_ASSIGN, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else if l.next == '-' {
+			tok = newToken(token.MINUS_MINUS, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.MINUS, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '!':
+		if l.next == '=' {
+			tok = newToken(token.NEQ, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.BANG, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '/':
+		if l.next == '=' {
+			tok = newToken(token.DIV_ASSIGN, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.SLASH, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '*':
+		if l.next == '=' {
+			tok = newToken(token.MULT_ASSIGN, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.ASTERISK, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '<':
+		if l.next == '=' {
+			tok = newToken(token.LT_EQ, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.LT, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '>':
+		if l.next == '=' {
+			tok = newToken(token.GT_EQ, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.GT, l.cur, l.fileName, l.line, l.linePosition)
+		}
 	case '{':
 		tok = newToken(token.LBRACE, l.cur, l.fileName, l.line, l.linePosition)
 	case '}':
 		tok = newToken(token.RBRACE, l.cur, l.fileName, l.line, l.linePosition)
+	case '&':
+		if l.next == '&' {
+			tok = newToken(token.AND, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.ILLEGAL, l.cur, l.fileName, l.line, l.linePosition)
+		}
+	case '|':
+		if l.next == '|' {
+			tok = newToken(token.OR, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.ILLEGAL, l.cur, l.fileName, l.line, l.linePosition)
+		}
 	case rune(0):
 		tok = newToken(token.EOF, rune(0), l.fileName, l.line, l.linePosition)
 	default:
@@ -120,6 +206,14 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = l.readNumber()
 
 			tok.Type = token.INT
+
+			if l.cur == '.' && isDigit(l.next) {
+				tok.Literal += "."
+				l.readChar()
+				tok.Literal += l.readNumber()
+				tok.Type = token.DEC
+			}
+
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.cur, l.fileName, l.line, l.linePosition)

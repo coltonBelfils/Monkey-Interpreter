@@ -12,10 +12,34 @@ const (
 	//identifiers and literals (user generated content)
 	IDENT = "IDENT"
 	INT   = "INT"
+	DEC = "DEC"
+
+	ESCAPE = "ESCAPE"
 
 	//operators
 	ASSIGN = "ASSIGN"
 	PLUS   = "PLUS"
+	MINUS = "MINUS"
+	BANG = "BANG"
+	ASTERISK = "ASTERISK"
+	SLASH = "SLASH"
+
+	PLUS_PLUS = "PLUS_PLUS"
+	MINUS_MINUS = "MINUS_MINUS"
+	PLUS_ASSIGN = "PLUS_ASSIGN"
+	MINUS_ASSIGN = "MINUS_ASSIGN"
+	MULT_ASSIGN = "MULT_ASSIGN"
+	DIV_ASSIGN = "DIV_ASSIGN"
+
+	LT = "LT"
+	GT = "GT"
+	EQ = "EQ"
+	NEQ = "NEQ"
+	LT_EQ = "LT_EQ"
+	GT_EQ = "GT_EQ"
+
+	AND = "AND"
+	OR = "OR"
 
 	//delimiters
 	COMMA     = "COMMA"
@@ -29,11 +53,21 @@ const (
 	//keywords
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
+	TRUE = "TRUE"
+	FALSE = "FALSE"
+	RETURN = "RETURN"
+	IF = "IF"
+	ELSE = "ELSE"
 )
 
 var keywords = map[string]TokenType{
 	"fn": FUNCTION,
 	"let": LET,
+	"true": TRUE,
+	"false": FALSE,
+	"return": RETURN,
+	"if": IF,
+	"else": ELSE,
 }
 
 func LookupIdent(ident string) TokenType {
