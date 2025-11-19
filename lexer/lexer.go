@@ -12,6 +12,7 @@ import (
 )
 
 const STRING_INPUT = "STRING_INPUT"
+const REPL_INPUT = "REPL_INPUT"
 
 type Lexer struct {
 	input *bufio.Reader
@@ -54,6 +55,10 @@ func NewFromFile(file *os.File) *Lexer {
 
 func NewFromString(input string) *Lexer {
 	return New(strings.NewReader(input), STRING_INPUT)
+}
+
+func NewFromRepl(input io.Reader) *Lexer {
+	return New(input, REPL_INPUT)
 }
 
 func (l *Lexer) readChar() {
