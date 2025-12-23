@@ -91,3 +91,7 @@ type Token struct {
 func (t Token) String() string {
 	return fmt.Sprintf("%s of type %s at %s:%d:%d", t.Literal, t.Type, t.FileName, t.LinePosition, t.Position)
 }
+
+func (t Token) PositionString() string {
+	return fmt.Sprintf("%s:%d:%d", t.FileName, t.LinePosition, t.Position)
+}
