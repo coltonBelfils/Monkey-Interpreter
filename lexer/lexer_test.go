@@ -136,8 +136,8 @@ if (5 < 10) {
 == != >= <= && || ++ -- += -= *= /=`
 
 	tests := []struct {
-		expectedType     token.TokenType
-		expectedLiteral  string
+		expectedType    token.TokenType
+		expectedLiteral string
 	}{
 		{token.LET, "let"},
 		{token.IDENT, "five"},
@@ -222,8 +222,6 @@ if (5 < 10) {
 
 		{token.RBRACE, "}"},
 
-
-
 		{token.EQ, "=="},
 		{token.NEQ, "!="},
 		{token.GT_EQ, ">="},
@@ -236,7 +234,6 @@ if (5 < 10) {
 		{token.MINUS_ASSIGN, "-="},
 		{token.MULT_ASSIGN, "*="},
 		{token.DIV_ASSIGN, "/="},
-
 
 		{token.EOF, ""},
 	}

@@ -12,34 +12,42 @@ const (
 	//identifiers and literals (user generated content)
 	IDENT = "IDENT"
 	INT   = "INT"
-	DEC = "DEC"
+	DEC   = "DEC"
 
 	ESCAPE = "ESCAPE"
 
 	//operators
-	ASSIGN = "ASSIGN"
-	PLUS   = "PLUS"
-	MINUS = "MINUS"
-	BANG = "BANG"
+	ASSIGN   = "ASSIGN"
+	PLUS     = "PLUS"
+	MINUS    = "MINUS"
+	BANG     = "BANG"
 	ASTERISK = "ASTERISK"
-	SLASH = "SLASH"
+	SLASH    = "SLASH"
+	PERCENT  = "PERCENT"
 
-	PLUS_PLUS = "PLUS_PLUS"
-	MINUS_MINUS = "MINUS_MINUS"
-	PLUS_ASSIGN = "PLUS_ASSIGN"
+	AMPERSAND = "AMPERSAND"
+	PIPE = "PIPE"
+	CAROT = "CAROT"
+	TILDE = "TILDE"
+	LEFT_SHIFT = "LEFT_SHIFT"
+	RIGHT_SHIFT = "RIGHT_SHIFT"
+
+	PLUS_PLUS    = "PLUS_PLUS"
+	MINUS_MINUS  = "MINUS_MINUS"
+	PLUS_ASSIGN  = "PLUS_ASSIGN"
 	MINUS_ASSIGN = "MINUS_ASSIGN"
-	MULT_ASSIGN = "MULT_ASSIGN"
-	DIV_ASSIGN = "DIV_ASSIGN"
+	MULT_ASSIGN  = "MULT_ASSIGN"
+	DIV_ASSIGN   = "DIV_ASSIGN"
 
-	LT = "LT"
-	GT = "GT"
-	EQ = "EQ"
-	NEQ = "NEQ"
+	LT    = "LT"
+	GT    = "GT"
+	EQ    = "EQ"
+	NEQ   = "NEQ"
 	LT_EQ = "LT_EQ"
 	GT_EQ = "GT_EQ"
 
 	AND = "AND"
-	OR = "OR"
+	OR  = "OR"
 
 	//delimiters
 	COMMA     = "COMMA"
@@ -53,23 +61,23 @@ const (
 	//keywords
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
-	TRUE = "TRUE"
-	FALSE = "FALSE"
-	RETURN = "RETURN"
-	IF = "IF"
-	ELSE = "ELSE"
-	QUIT = "QUIT"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	RETURN   = "RETURN"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	QUIT     = "QUIT"
 )
 
 var keywords = map[string]TokenType{
-	"fn": FUNCTION,
-	"let": LET,
-	"true": TRUE,
-	"false": FALSE,
+	"fn":     FUNCTION,
+	"let":    LET,
+	"true":   TRUE,
+	"false":  FALSE,
 	"return": RETURN,
-	"if": IF,
-	"else": ELSE,
-	"quit": QUIT,
+	"if":     IF,
+	"else":   ELSE,
+	"quit":   QUIT,
 }
 
 func LookupIdent(ident string) TokenType {
@@ -85,7 +93,7 @@ type Token struct {
 	FileName     string
 	LinePosition int
 	Position     int
-	PositionEnd  int//maybe?
+	PositionEnd  int //maybe?
 }
 
 func (t Token) String() string {

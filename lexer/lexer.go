@@ -155,9 +155,21 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.ASTERISK, l.cur, l.fileName, l.line, l.linePosition)
 		}
+	case '%':
+		if l.next == '=' {
+			tok = newToken(token.PERCENT, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else {
+			tok = newToken(token.PERCENT, l.cur, l.fileName, l.line, l.linePosition)
+		}
 	case '<':
 		if l.next == '=' {
 			tok = newToken(token.LT_EQ, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else if l.next == '<' {
+			tok = newToken(token.LEFT_SHIFT, l.cur, l.fileName, l.line, l.linePosition)
 			l.readChar()
 			tok.Literal += string(l.cur)
 		} else {
@@ -166,6 +178,10 @@ func (l *Lexer) NextToken() token.Token {
 	case '>':
 		if l.next == '=' {
 			tok = newToken(token.GT_EQ, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+		} else if l.next == '>' {
+			tok = newToken(token.RIGHT_SHIFT, l.cur, l.fileName, l.line, l.linePosition)
 			l.readChar()
 			tok.Literal += string(l.cur)
 		} else {
@@ -181,7 +197,7 @@ func (l *Lexer) NextToken() token.Token {
 			l.readChar()
 			tok.Literal += string(l.cur)
 		} else {
-			tok = newToken(token.ILLEGAL, l.cur, l.fileName, l.line, l.linePosition)
+			tok = newToken(token.AMPERSAND, l.cur, l.fileName, l.line, l.linePosition)
 		}
 	case '|':
 		if l.next == '|' {
@@ -189,8 +205,12 @@ func (l *Lexer) NextToken() token.Token {
 			l.readChar()
 			tok.Literal += string(l.cur)
 		} else {
-			tok = newToken(token.ILLEGAL, l.cur, l.fileName, l.line, l.linePosition)
+			tok = newToken(token.PIPE, l.cur, l.fileName, l.line, l.linePosition)
 		}
+	case '~':
+		tok = newToken(token.TILDE, l.cur, l.fileName, l.line, l.linePosition)
+	case '^':
+		tok = newToken(token.CAROT, l.cur, l.fileName, l.line, l.linePosition)
 	case rune(0):
 		tok = newToken(token.EOF, rune(0), l.fileName, l.line, l.linePosition)
 	default:
