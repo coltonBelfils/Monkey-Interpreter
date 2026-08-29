@@ -10,6 +10,8 @@ The following additions have been added by me along the way:
 - The lexer supports the two character tokens: >=, <=, &&, ||, ++, --, +=, -=, *=, /=, >>, <<
 - Numbers are parsed into big.Int and big.Float instead of int.
 - The parser supports postfix operators, EG foo++, as well as prefix and infix.
+- Blocks are expressions, not statements
+- If expressions do not strictly take blocks for their consequence and alternative, but simply expressions. 
 
 TODO:
 - Add comment support to the lexer. Both // and /* */

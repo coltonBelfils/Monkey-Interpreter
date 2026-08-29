@@ -112,7 +112,7 @@ func (es *ExpressionStatement) TokenLiteral() string {
 
 func (es *ExpressionStatement) String() string {
 	if es.Expression != nil {
-		return es.Expression.String()
+		return es.Expression.String() + ";\n"
 	}
 
 	return ""
@@ -234,6 +234,115 @@ func (pe *PostfixExpression) String() string {
 	out.WriteString(pe.Left.String())
 	out.WriteString(pe.Operator)
 	out.WriteString(")")
+
+	return out.String()
+}
+
+type IfExpression struct {
+	Token       token.Token
+	Condition   Expression
+	Consequence Expression
+	Alternative Expression
+}
+
+func (ie *IfExpression) expressionNode() {}
+
+func (ie *IfExpression) TokenLiteral() string {
+	return ie.Token.Literal
+}
+
+func (ie *IfExpression) String() string {
+	var out strings.Builder
+
+	out.WriteString("if(")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(")")
+	if ie.Consequence != nil {
+		out.WriteString(" ")
+		con := ie.Consequence
+		out.WriteString(con.String())
+
+		if ie.Alternative != nil {
+			out.WriteString(" else ")
+			alt := ie.Alternative
+			out.WriteString(alt.String())
+		}
+	}
+
+	return out.String()
+}
+
+/*
+type BlockStatement struct {
+	Token      token.Token
+	Statements []Statement
+}
+
+func (bs *BlockStatement) statementNode() {}
+
+func (bs *BlockStatement) TokenLiteral() string {
+	return bs.Token.Literal
+}
+
+func (bs *BlockStatement) String() string {
+	var out strings.Builder
+
+	for _, s := range bs.Statements {
+		out.WriteString(s.String())
+	}
+
+	return out.String()
+}
+*/
+
+type BlockExpression struct {
+	Token      token.Token
+	Statements []Statement
+}
+
+func (bs *BlockExpression) expressionNode() {}
+
+func (bs *BlockExpression) TokenLiteral() string {
+	return bs.Token.Literal
+}
+
+func (bs *BlockExpression) String() string {
+	var out strings.Builder
+
+	out.WriteString("{\n")
+	for _, s := range bs.Statements {
+		out.WriteString("\t")
+		out.WriteString(s.String())
+	}
+	out.WriteString("}")
+
+	return out.String()
+}
+
+type FunctionLiteral struct {
+	Token      token.Token
+	Parameters []Expression //expressions or identifiers?
+	Body       Expression
+}
+
+func (fl *FunctionLiteral) expressionNode() {}
+
+func (fl *FunctionLiteral) TokenLiteral() string {
+	return fl.Token.Literal
+}
+
+func (fl *FunctionLiteral) String() string {
+	var out strings.Builder
+
+	out.WriteString("fn(")
+	for i, param := range fl.Parameters {
+		out.WriteString(param.String())
+		if i != len(fl.Parameters) {
+			out.WriteString(", ")
+		}
+	}
+	out.WriteString(") ")
+	out.WriteString(fl.Body.String())
 
 	return out.String()
 }

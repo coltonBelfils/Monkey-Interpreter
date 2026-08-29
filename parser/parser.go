@@ -85,6 +85,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefixFn(token.TRUE, p.parseBoolean)
 	p.registerPrefixFn(token.FALSE, p.parseBoolean)
 	p.registerPrefixFn(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefixFn(token.LBRACE, p.parseBlockExpression)
+	p.registerPrefixFn(token.IF, p.parseIfExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfixFn(token.PLUS, p.parseInfixExpression)
@@ -345,6 +347,88 @@ func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
 	left = postfix(left)
 
 	return left
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	expression := &ast.IfExpression{Token: p.curToken}
+
+	if !p.assertNext(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	expression.Condition = p.parseExpression(LOWEST)
+
+	if !p.assertNext(token.RPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	/* //strict block version
+	expression.Consequence = p.parseBlockExpression()
+	 */
+
+	expression.Consequence = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type == token.ELSE {
+		p.nextToken()
+		p.nextToken()
+
+		/* //strict block or if version
+		if p.assertNext(token.LBRACE) {
+			expression.Alternative = p.parseBlockExpression()
+		} else if p.assertNext(token.IF) {
+			expression.Alternative = p.parseIfExpression()
+		} else {
+			return nil
+		}
+		 */
+
+		expression.Alternative = p.parseExpression(LOWEST)
+	}
+
+	return expression
+}
+
+/*
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	block := &ast.BlockStatement{
+		Token: p.curToken,
+	}
+	block.Statements = []ast.Statement{}
+
+	p.nextToken()
+
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return block
+}
+*/
+
+func (p *Parser) parseBlockExpression() ast.Expression {
+	block := &ast.BlockExpression{
+		Token: p.curToken,
+	}
+	block.Statements = []ast.Statement{}
+
+	p.nextToken()
+
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return block
 }
 
 func (p *Parser) assertNext(t token.TokenType) bool {

@@ -522,6 +522,77 @@ func TestBooleanExpression(t *testing.T) {
 	}
 }
 
+func TestIfExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "if (x < y) x",
+			expected: "if((x < y)) x",
+		},
+		{
+			input:    "if (x) {y}",
+			expected: `if(x) {
+	y
+};`,
+		},
+		{
+			input:    "if (x) {y}",
+			expected: "if(x) { y }",
+		},
+		{
+			input:    "if (x) if (x) x else y else y",
+			expected: "if(x) if(x) x else y else y",
+		},
+		{
+			input:    "if (x) if (x) if (x) x",
+			expected: "if(x) if(x) if(x) x",
+		},
+	}
+
+	for _, tt := range tests {
+		l := lexer.NewFromString(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain %d statements. Got=%d\n", 1, len(program.Statements))
+		}
+
+		//stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		//if !ok {
+		//	t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. Got=%T", program.Statements[0])
+		//}
+		//
+		//exp, ok := stmt.Expression.(*ast.IfExpression)
+		//if !ok {
+		//	t.Fatalf("stmt.Expression is not ast.IfExpression. Got=%T", stmt.Expression)
+		//}
+
+		//test the consequence expression somehow
+		//test the alternative expression somehow
+
+		actual := program.String()
+		if tt.expected != program.String() {
+			t.Errorf("expected=%q. got=%q", tt.expected, actual)
+		}
+	}
+}
+
+func TestBlockExpression(t *testing.T) {
+	snapshotTest(t, snapshotInput{
+		{
+			input:    "{ x; }",
+			expected: `{
+	x;
+};
+`,
+		},
+	})
+}
+
 func testIntegerLiteral(t *testing.T, il ast.Expression, value *big.Int) bool {
 	i, ok := il.(*ast.IntegerLiteral)
 	if !ok {
@@ -658,6 +729,29 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left interface{}, ope
 	}
 
 	return true
+}
+
+//func testBlockExpression(t *testing.T, exp ast.Expression) {
+//
+//}
+
+type snapshotInput []struct {
+	input    string
+	expected string
+}
+
+func snapshotTest(t *testing.T, tests snapshotInput) {
+	for _, tt := range tests {
+		l := lexer.NewFromString(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		actual := program.String()
+		if tt.expected != program.String() {
+			t.Errorf("expected=%q. got=%q", tt.expected, actual)
+		}
+	}
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
