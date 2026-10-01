@@ -43,6 +43,8 @@ var precedences = map[token.TokenType]int{
 	token.AMPERSAND:   PRODUCT,
 	token.CAROT:       SUM,
 	token.PIPE:        SUM,
+
+	token.LPAREN: CALL,
 }
 
 type (
@@ -61,10 +63,6 @@ type Parser struct {
 	prefixParseFns  map[token.TokenType]prefixParseFn
 	infixParseFns   map[token.TokenType]infixParseFn
 	postfixParseFns map[token.TokenType]postfixParseFn
-}
-
-func postfixWrapper() ast.Expression {
-	return nil
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -87,6 +85,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefixFn(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefixFn(token.LBRACE, p.parseBlockExpression)
 	p.registerPrefixFn(token.IF, p.parseIfExpression)
+	p.registerPrefixFn(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfixFn(token.PLUS, p.parseInfixExpression)
@@ -107,6 +106,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfixFn(token.CAROT, p.parseInfixExpression)
 	p.registerInfixFn(token.LEFT_SHIFT, p.parseInfixExpression)
 	p.registerInfixFn(token.RIGHT_SHIFT, p.parseInfixExpression)
+	p.registerInfixFn(token.LPAREN, p.parseFunctionCall)
 
 	// postfix is infix with the left ignored
 	p.registerInfixFn(token.BANG, p.parsePostfixExpression)
@@ -129,10 +129,6 @@ func (p *Parser) registerPrefixFn(tokenType token.TokenType, fn prefixParseFn) {
 
 func (p *Parser) registerInfixFn(tokenType token.TokenType, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
-}
-
-func (p *Parser) registerPostfixFn(tokenType token.TokenType, fn postfixParseFn) {
-	p.postfixParseFns[tokenType] = fn
 }
 
 func (p *Parser) peekPrecedence() int {
@@ -195,8 +191,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	//TODO: skipping the expressions for now. Jump to the semicolon
-	for p.curToken.Type != token.SEMICOLON {
+	p.nextToken()
+
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type == token.SEMICOLON {
 		p.nextToken()
 	}
 
@@ -204,13 +203,9 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
-	stmt := &ast.ReturnStatement{Token: p.curToken}
-
-	p.nextToken()
-
-	//TODO: skipping the expressions for now. Jump to the semicolon
-	for p.curToken.Type != token.SEMICOLON {
-		p.nextToken()
+	stmt := &ast.ReturnStatement{
+		Token: p.curToken,
+		ReturnValue: p.parseExpression(LOWEST),
 	}
 
 	return stmt
@@ -231,7 +226,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type)
+		p.noPrefixParseFnError(p.curToken)
 		return nil
 	}
 	leftExp := prefix()
@@ -367,7 +362,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 	/* //strict block version
 	expression.Consequence = p.parseBlockExpression()
-	 */
+	*/
 
 	expression.Consequence = p.parseExpression(LOWEST)
 
@@ -383,7 +378,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		} else {
 			return nil
 		}
-		 */
+		*/
 
 		expression.Alternative = p.parseExpression(LOWEST)
 	}
@@ -431,6 +426,75 @@ func (p *Parser) parseBlockExpression() ast.Expression {
 	return block
 }
 
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	fn := &ast.FunctionLiteral{
+		Token: p.curToken,
+	}
+	fn.Parameters = []ast.Identifier{}
+
+	if !p.assertNext(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	for p.curToken.Type != token.RPAREN {
+		e := p.parseIdentifier().(*ast.Identifier) //I should probably have a check here
+		p.nextToken()
+
+		fn.Parameters = append(fn.Parameters, *e)
+
+		if p.curToken.Type == token.COMMA {
+			p.nextToken()
+		} else if p.curToken.Type != token.RPAREN {
+			p.errors = append(p.errors, fmt.Sprintf("unexpected token %q at %s", p.curToken.Literal, p.curToken.PositionString()))
+		}
+	}
+
+	p.nextToken()
+
+	fn.Body = p.parseExpression(LOWEST)
+
+	return fn
+}
+
+func (p *Parser) parseFunctionCall(fn ast.Expression) ast.Expression {
+	switch fnType := fn.(type) {
+	case *ast.FunctionLiteral:
+		break
+	case *ast.Identifier:
+		break
+	default:
+		p.errors = append(p.errors, fmt.Sprintf("%s expected after %s or a %s. Instead got \"%s\"", p.curToken.PositionString(), token.FUNCTION, token.IDENT, fnType.String()))
+	}
+
+	ce := &ast.CallExpression{
+		Token:    p.curToken,
+		Function: fn,
+	}
+
+	p.nextToken()
+
+	for p.curToken.Type != token.RPAREN {
+		e := p.parseExpression(LOWEST)
+		p.nextToken()
+
+		ce.Arguments = append(ce.Arguments, e)
+
+		if p.curToken.Type == token.COMMA {
+			p.nextToken()
+		} else if p.curToken.Type != token.RPAREN {
+			p.errors = append(p.errors, fmt.Sprintf("unexpected token %q at %s", p.curToken.Literal, p.curToken.PositionString()))
+		}
+	}
+
+	//if !p.assertNext(token.RPAREN) {
+	//	return nil
+	//}
+
+	return ce
+}
+
 func (p *Parser) assertNext(t token.TokenType) bool {
 	if p.peekToken.Type == t {
 		p.nextToken()
@@ -446,12 +510,12 @@ func (p *Parser) peekError(t token.TokenType) {
 	p.errors = append(p.errors, msg)
 }
 
-func (p *Parser) noPrefixParseFnError(t token.TokenType) {
-	msg := fmt.Sprintf("no prefix parse function found for %s", t)
+func (p *Parser) noPrefixParseFnError(t token.Token) {
+	msg := fmt.Sprintf("%s no prefix parse function found for %s", t.PositionString(), t.Type)
 	p.errors = append(p.errors, msg)
 }
 
-func (p *Parser) noPostfixParseFnError(t token.TokenType) {
-	msg := fmt.Sprintf("no postfix parse function found for %s", t)
-	p.errors = append(p.errors, msg)
-}
+//func (p *Parser) noPostfixParseFnError(t token.Token) {
+//	msg := fmt.Sprintf("no postfix parse function found for %s", t)
+//	p.errors = append(p.errors, msg)
+//}

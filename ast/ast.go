@@ -40,7 +40,7 @@ func (p *Program) String() string {
 		out.WriteString(s.String())
 	}
 
-	return out.String()
+	return strings.TrimSpace(out.String())
 }
 
 type LetStatement struct {
@@ -62,11 +62,15 @@ func (ls *LetStatement) String() string {
 	out.WriteString(ls.Name.String())
 	out.WriteString(" = ")
 
+	/* //??? Why is this what he chose?
 	if ls.Value != nil {
 		out.WriteString(ls.Value.String())
 	} else {
 		out.WriteString("___")
 	}
+	*/
+
+	out.WriteString(ls.Value.String())
 
 	out.WriteString(";\n")
 
@@ -259,13 +263,11 @@ func (ie *IfExpression) String() string {
 	out.WriteString(")")
 	if ie.Consequence != nil {
 		out.WriteString(" ")
-		con := ie.Consequence
-		out.WriteString(con.String())
+		out.WriteString(ie.Consequence.String())
 
 		if ie.Alternative != nil {
 			out.WriteString(" else ")
-			alt := ie.Alternative
-			out.WriteString(alt.String())
+			out.WriteString(ie.Alternative.String())
 		}
 	}
 
@@ -309,10 +311,17 @@ func (bs *BlockExpression) TokenLiteral() string {
 func (bs *BlockExpression) String() string {
 	var out strings.Builder
 
-	out.WriteString("{\n")
-	for _, s := range bs.Statements {
-		out.WriteString("\t")
-		out.WriteString(s.String())
+	if len(bs.Statements) == 0 {
+		return "{}"
+	}
+
+	out.WriteString("{\n\t")
+	for i, s := range bs.Statements {
+		str := strings.ReplaceAll(s.String(), "\n", "\n\t")
+		if i == len(bs.Statements)-1 {
+			str = strings.TrimSuffix(str, "\t")
+		}
+		out.WriteString(str)
 	}
 	out.WriteString("}")
 
@@ -321,7 +330,7 @@ func (bs *BlockExpression) String() string {
 
 type FunctionLiteral struct {
 	Token      token.Token
-	Parameters []Expression //expressions or identifiers?
+	Parameters []Identifier //expressions or identifiers?
 	Body       Expression
 }
 
@@ -337,12 +346,43 @@ func (fl *FunctionLiteral) String() string {
 	out.WriteString("fn(")
 	for i, param := range fl.Parameters {
 		out.WriteString(param.String())
-		if i != len(fl.Parameters) {
+		if i != len(fl.Parameters)-1 {
 			out.WriteString(", ")
 		}
 	}
 	out.WriteString(") ")
 	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+type CallExpression struct {
+	Token token.Token
+	Function Expression
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode() {}
+
+func (ce *CallExpression) TokenLiteral() string {
+	return ce.Token.Literal
+}
+
+func (ce *CallExpression) String() string {
+	out := strings.Builder{}
+
+	out.WriteString(ce.Function.String())
+
+	out.WriteString("(")
+
+	for i, a := range ce.Arguments {
+		out.WriteString(a.String())
+		if i != len(ce.Arguments) - 1 {
+			out.WriteString(", ")
+		}
+	}
+
+	out.WriteString(")")
 
 	return out.String()
 }

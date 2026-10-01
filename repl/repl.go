@@ -1,8 +1,9 @@
 package repl
 
 import (
+	"MonkeyInterpreter/evaluator"
 	"MonkeyInterpreter/lexer"
-	"MonkeyInterpreter/token"
+	"MonkeyInterpreter/parser"
 	"bufio"
 	"fmt"
 	"io"
@@ -23,13 +24,25 @@ func Start(in io.Reader, out io.Writer) {
 
 		line := scanner.Text()
 		l := lexer.NewFromString(line)
+		p := parser.New(l)
 
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Fprintf(out, "%v\n", tok)
-			if tok.Type == token.QUIT {
-				return
-			}
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			printParseErrors(out, p.Errors())
+			continue
 		}
+
+		evaluated := evaluator.Eval(program)
+		if evaluated != nil {
+			fmt.Fprintf(out, "%s\n", evaluated.Inspect())
+		}
+
+	}
+}
+
+func printParseErrors(out io.Writer, errors []string) {
+	for _, msg := range errors {
+		fmt.Fprintf(out, "\t%s\n", msg)
 	}
 }
 

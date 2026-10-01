@@ -1,6 +1,8 @@
 let five = 5;
 let ten = 10;
 
+let a = 1 + 2;
+
 let add = fn(x, y) {
 	x + y;
 };

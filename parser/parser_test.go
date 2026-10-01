@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLetStatement(t *testing.T) {
@@ -221,14 +223,14 @@ func TestParsingPrefixExpressions(t *testing.T) {
 			tokens.WriteString(t.PositionString())
 			tokens.WriteString("\n")
 		}
-		fmt.Printf("\nTokens:\n%s", tokens.String())
+		//fmt.Printf("\nTokens:\n%s", tokens.String())
 
 		l := lexer.NewFromString(tt.input)
 		p := New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
-		fmt.Printf("%s\n", program.String())
+		//fmt.Printf("%s\n", program.String())
 
 		if len(program.Statements) != 1 {
 			t.Fatalf("program had unexpected number of statements. Got: %d. Expected: 1", len(program.Statements))
@@ -276,14 +278,14 @@ func TestParsingPostfixExpressions(t *testing.T) {
 			tokens.WriteString(t.PositionString())
 			tokens.WriteString("\n")
 		}
-		fmt.Printf("Tokens:\n%s", tokens.String())
+		//fmt.Printf("Tokens:\n%s", tokens.String())
 
 		l := lexer.NewFromString(tt.input)
 		p := New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
-		fmt.Printf("%s\n", program.String())
+		//fmt.Printf("%s\n", program.String())
 
 		if len(program.Statements) != 1 {
 			t.Fatalf("program had unexpected number of statements. Got: %d. Expected: 1", len(program.Statements))
@@ -340,14 +342,14 @@ func TestParsingInfixExpressions(t *testing.T) {
 			tokens.WriteString(t.PositionString())
 			tokens.WriteString("\n")
 		}
-		fmt.Printf("Tokens:\n%s", tokens.String())
+		//fmt.Printf("Tokens:\n%s", tokens.String())
 
 		l := lexer.NewFromString(tt.input)
 		p := New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
-		fmt.Printf("%s\n", program.String())
+		//fmt.Printf("%s\n", program.String())
 
 		if len(program.Statements) != 1 {
 			t.Fatalf("program had unexpected number of statements. Got: %d. Expected: 1", len(program.Statements))
@@ -529,25 +531,27 @@ func TestIfExpression(t *testing.T) {
 	}{
 		{
 			input:    "if (x < y) x",
-			expected: "if((x < y)) x",
+			expected: "if((x < y)) x;",
 		},
 		{
-			input:    "if (x) {y}",
+			input: "if (x) {y}",
 			expected: `if(x) {
-	y
+	y;
 };`,
 		},
 		{
-			input:    "if (x) {y}",
-			expected: "if(x) { y }",
+			input: "if (x) {y}",
+			expected: `if(x) {
+	y;
+};`,
 		},
 		{
 			input:    "if (x) if (x) x else y else y",
-			expected: "if(x) if(x) x else y else y",
+			expected: "if(x) if(x) x else y else y;",
 		},
 		{
 			input:    "if (x) if (x) if (x) x",
-			expected: "if(x) if(x) if(x) x",
+			expected: "if(x) if(x) if(x) x;",
 		},
 	}
 
@@ -584,11 +588,76 @@ func TestIfExpression(t *testing.T) {
 func TestBlockExpression(t *testing.T) {
 	snapshotTest(t, snapshotInput{
 		{
-			input:    "{ x; }",
+			input: "{ x; }",
 			expected: `{
 	x;
-};
-`,
+};`,
+		},
+		{
+			input: `{let x = 5; w; w; w;w; if (true) {55; 16;} else 3;`,
+			expected: `{
+	let x = 5;
+	w;
+	w;
+	w;
+	w;
+	if(true) {
+		55;
+		16;
+	} else 3;
+};`,
+		},
+	})
+}
+
+func TestFunctionLiteral(t *testing.T) {
+	snapshotTest(t, snapshotInput{
+		{
+			`fn() {};`,
+			`fn() {};`,
+		},
+		{
+			`fn(1,2,3)  true;`,
+			`fn(1, 2, 3) true;`,
+		},
+		{
+			`fn(tree, 4, 1){
+tree;
+155/6;
+fn() {a+b;123;};{5;};
+}`,
+			`fn(tree, 4, 1) {
+	tree;
+	(155 / 6);
+	fn() {
+		(a + b);
+		123;
+	};
+	{
+		5;
+	};
+};`, //TODO: comment out the () around expressions. They need to be removed from the .String() methods
+		},
+	})
+}
+
+func TestCallExpression(t *testing.T) {
+	snapshotTest(t, snapshotInput{
+		{
+			"a();",
+			"a();",
+		},
+		{
+			"let a = a();",
+			"let a = a();",
+		},
+		{
+			"let a = (a() + b());",
+			"let a = (a() + b());",
+		},
+		{
+			"let a = fn() 1; let r = a();",
+			"let a = fn() 1;\nlet r = a();",
 		},
 	})
 }
@@ -741,16 +810,19 @@ type snapshotInput []struct {
 }
 
 func snapshotTest(t *testing.T, tests snapshotInput) {
-	for _, tt := range tests {
-		l := lexer.NewFromString(tt.input)
-		p := New(l)
-		program := p.ParseProgram()
-		checkParserErrors(t, p)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			l := lexer.NewFromString(tt.input)
+			p := New(l)
+			program := p.ParseProgram()
+			checkParserErrors(t, p)
 
-		actual := program.String()
-		if tt.expected != program.String() {
-			t.Errorf("expected=%q. got=%q", tt.expected, actual)
-		}
+			actual := program.String()
+			assert.Equal(t, tt.expected, actual)
+			//if tt.expected != program.String() {
+			//	t.Errorf("expected=\"%s\".\ngot=\"%s\"", tt.expected, actual)
+			//}
+		})
 	}
 }
 
