@@ -64,6 +64,8 @@ const (
 	TRUE     = "TRUE"
 	FALSE    = "FALSE"
 	RETURN   = "RETURN"
+	FULL_RETURN = "FULL_RETURN"
+	UNWIND = "UNWIND"
 	IF       = "IF"
 	ELSE     = "ELSE"
 	QUIT     = "QUIT"

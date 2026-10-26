@@ -172,6 +172,15 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.LEFT_SHIFT, l.cur, l.fileName, l.line, l.linePosition)
 			l.readChar()
 			tok.Literal += string(l.cur)
+		} else if l.next == '-' {
+			tok = newToken(token.UNWIND, l.cur, l.fileName, l.line, l.linePosition)
+			l.readChar()
+			tok.Literal += string(l.cur)
+			/*if l.next == '-' {
+				l.readChar()
+				tok.Literal += string(l.cur)
+				tok.Type = token.FULL_RETURN
+			}*/
 		} else {
 			tok = newToken(token.LT, l.cur, l.fileName, l.line, l.linePosition)
 		}
@@ -211,6 +220,12 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.TILDE, l.cur, l.fileName, l.line, l.linePosition)
 	case '^':
 		tok = newToken(token.CAROT, l.cur, l.fileName, l.line, l.linePosition)
+	case '.':
+		if isDigit(l.next) {
+			l.readChar()
+			tok.Literal = fmt.Sprintf("0.%s", l.readNumber())
+			tok.Type = token.DEC
+		}
 	case rune(0):
 		tok = newToken(token.EOF, rune(0), l.fileName, l.line, l.linePosition)
 	default:

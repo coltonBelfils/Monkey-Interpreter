@@ -162,11 +162,11 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	if !ok {
 		t.Fatalf("expression not *ast.IntegerLiteral. Got: %T", stmt.Expression)
 	}
-	if ident.Value.String() != "5" {
-		t.Errorf("ident.Value incorrect. Got: %s. Expected: 5", ident.Value.String())
+	if ident.Value != 5 {
+		t.Errorf("ident.Value incorrect. Got: %d. Expected: 5", ident.Value)
 	}
 	if ident.TokenLiteral() != "5" {
-		t.Errorf("ident.TokenLiteral() incorrect. Got: %q. Expected: %q", ident.Value.String(), "5")
+		t.Errorf("ident.TokenLiteral() incorrect. Got: %q. Expected: %q", ident.Value, "5")
 	}
 }
 
@@ -191,11 +191,11 @@ func TestDecimalLiteralExpression(t *testing.T) {
 	if !ok {
 		t.Fatalf("expression not *ast.DecimalLiteral. Got: %T", stmt.Expression)
 	}
-	if ident.Value.String() != "5.5" {
-		t.Errorf("ident.Value incorrect. Got: %s. Expected: 5.5", ident.Value.String())
+	if ident.Value != 5.5 {
+		t.Errorf("ident.Value incorrect. Got: %f. Expected: 5.5", ident.Value)
 	}
 	if ident.TokenLiteral() != "5.5" {
-		t.Errorf("ident.TokenLiteral() incorrect. Got: %q. Expected: %q", ident.Value.String(), "5.5")
+		t.Errorf("ident.TokenLiteral() incorrect. Got: %f. Expected: %q", ident.Value, "5.5")
 	}
 }
 
@@ -662,40 +662,61 @@ func TestCallExpression(t *testing.T) {
 	})
 }
 
-func testIntegerLiteral(t *testing.T, il ast.Expression, value *big.Int) bool {
+func TestReturnStatement2(t *testing.T) {
+	snapshotTest(t, snapshotInput{
+		{
+			"return 5;",
+			"return 5;",
+		},
+		{
+			"return 5 + 5;",
+			"return (5 + 5);",
+		},
+		{
+			"<- 5 + 5;",
+			"<- (5 + 5);",
+		},
+		{
+			"<-- 5 + 5;",
+			"<-- (5 + 5);",
+		},
+	})
+}
+
+func testIntegerLiteral(t *testing.T, il ast.Expression, value int) bool {
 	i, ok := il.(*ast.IntegerLiteral)
 	if !ok {
 		t.Errorf("il not *ast.IntegerLiteral. got=%T", il)
 		return false
 	}
 
-	if i.Value.String() != value.String() {
-		t.Errorf("i.value not %s. got=%s", value.String(), i.Value.String())
+	if i.Value != value {
+		t.Errorf("i.value not %d. got=%d", value, i.Value)
 		return false
 	}
 
-	if i.TokenLiteral() != fmt.Sprintf("%s", value.String()) {
-		t.Errorf("i.TokenLiteral() not %s. got=%s", value.String(), i.TokenLiteral())
+	if i.TokenLiteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("i.TokenLiteral() not %d. got=%s", value, i.TokenLiteral())
 		return false
 	}
 
 	return true
 }
 
-func testDecimalLiteral(t *testing.T, fl ast.Expression, value *big.Float) bool {
+func testDecimalLiteral(t *testing.T, fl ast.Expression, value float64) bool {
 	f, ok := fl.(*ast.DecimalLiteral)
 	if !ok {
 		t.Errorf("fl not *ast.DecimalLiteral. got=%T", fl)
 		return false
 	}
 
-	if f.Value.String() != value.String() {
-		t.Errorf("f.value not %s. got=%s", value.String(), f.Value.String())
+	if f.Value != value {
+		t.Errorf("f.value not %f. got=%f", value, f.Value)
 		return false
 	}
 
-	if f.TokenLiteral() != fmt.Sprintf("%s", value.String()) {
-		t.Errorf("f.TokenLiteral() not %s. got=%s", value.String(), f.TokenLiteral())
+	if f.TokenLiteral() != fmt.Sprintf("%f", value) {
+		t.Errorf("f.TokenLiteral() not %f. got=%s", value, f.TokenLiteral())
 		return false
 	}
 
@@ -744,9 +765,9 @@ func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 
 func testLiteralExpression(t *testing.T, exp ast.Expression, expected interface{}) bool {
 	switch v := expected.(type) {
-	case *big.Int:
+	case int:
 		return testIntegerLiteral(t, exp, v)
-	case *big.Float:
+	case float64:
 		return testDecimalLiteral(t, exp, v)
 	case string:
 		return testIdentifier(t, exp, v)

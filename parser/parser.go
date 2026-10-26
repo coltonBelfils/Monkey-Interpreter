@@ -5,7 +5,7 @@ import (
 	"MonkeyInterpreter/lexer"
 	"MonkeyInterpreter/token"
 	"fmt"
-	"math/big"
+	"strconv"
 )
 
 const (
@@ -18,6 +18,7 @@ const (
 	PREFIX      // -x --x !x ++x
 	POSTFIX     // x++ x-- x! // postfix is second so -x++ renders as (-x)++ and not -(x++).
 	CALL        // x()
+	Unwind
 )
 
 var precedences = map[token.TokenType]int{
@@ -107,6 +108,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfixFn(token.LEFT_SHIFT, p.parseInfixExpression)
 	p.registerInfixFn(token.RIGHT_SHIFT, p.parseInfixExpression)
 	p.registerInfixFn(token.LPAREN, p.parseFunctionCall)
+	p.registerInfixFn(token.UNWIND, p.parseUnwind)
 
 	// postfix is infix with the left ignored
 	p.registerInfixFn(token.BANG, p.parsePostfixExpression)
@@ -168,11 +170,27 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	if p.peekToken.Type == token.UNWIND {//Solved! If there's a destination, <- will be the second token.
+		p.parseUnwindStatement()
+	}
+
 	switch p.curToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
+	case token.UNWIND:// The first token in the line won't be an unwind. If there is no destination, <- will be the first token.
+		/*
+			Unwind needs to be a statement, but all statements so far start with the related keyword.
+			The unwind statement acts a lot like an infix expression.
+			I could use the parse expression statement function,
+			but then I would have to convert the ast.Expression into an ast.Statement at some point.
+		*/
+
+		//Unwind isn't fully solved. What about: if (true) <- 5; The if body only takes expressions.
+		return p.parseUnwindStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.FULL_RETURN:
+		return p.parseFullReturnStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
@@ -205,7 +223,30 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt := &ast.ReturnStatement{
 		Token: p.curToken,
-		ReturnValue: p.parseExpression(LOWEST),
+	}
+
+	p.nextToken()
+
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type == token.SEMICOLON {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseFullReturnStatement() *ast.FullReturnStatement {
+	stmt := &ast.FullReturnStatement{
+		Token: p.curToken,
+	}
+
+	p.nextToken()
+
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type == token.SEMICOLON {
+		p.nextToken()
 	}
 
 	return stmt
@@ -252,15 +293,13 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
-	tempInt := big.Int{}
-
-	_, ok := tempInt.SetString(p.curToken.Literal, 10)
-	if !ok {
-		msg := fmt.Sprintf("integer token %q at %s is an invalid int", p.curToken.Literal, p.peekToken.PositionString())
+	tempInt, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
+	if err != nil {
+		msg := fmt.Sprintf("integer token %q at %s is an invalid int. Error: %s", p.curToken.Literal, p.peekToken.PositionString(), err)
 		p.errors = append(p.errors, msg)
 	}
 
-	lit.Value = tempInt
+	lit.Value = int(tempInt)
 
 	return lit
 }
@@ -268,11 +307,9 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 func (p *Parser) parseDecimalLiteral() ast.Expression {
 	lit := &ast.DecimalLiteral{Token: p.curToken}
 
-	tempFloat := big.Float{}
-
-	_, ok := tempFloat.SetString(p.curToken.Literal)
-	if !ok {
-		msg := fmt.Sprintf("decimal token %q at %s is an invalid decimal", p.curToken.Literal, p.peekToken.PositionString())
+	tempFloat, err := strconv.ParseFloat(p.curToken.Literal, 64)
+	if err != nil {
+		msg := fmt.Sprintf("decimal token %q at %s is an invalid decimal. Error: %s", p.curToken.Literal, p.peekToken.PositionString(), err)
 		p.errors = append(p.errors, msg)
 	}
 
@@ -493,6 +530,18 @@ func (p *Parser) parseFunctionCall(fn ast.Expression) ast.Expression {
 	//}
 
 	return ce
+}
+
+func (p *Parser) parseUnwindPrefix() *ast.Expression {//This signature will probably be different
+	//get the target string out of the target ast.Expression
+
+	un :=
+}
+
+func (p *Parser) parseUnwindInfix(target ast.Expression) *ast.Expression {
+	//get the target string out of the target ast.Expression
+
+
 }
 
 func (p *Parser) assertNext(t token.TokenType) bool {
